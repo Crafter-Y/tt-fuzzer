@@ -73,6 +73,20 @@ function formatBool(value: boolean): string {
 }
 
 /**
+ * Format boolean value for LaTeX output
+ */
+function formatBoolLatex(value: boolean): string {
+  return value ? '\\color{green}\\top' : '\\color{red}\\bot';
+}
+
+/**
+ * Escape markdown table cell content
+ */
+function escapeMarkdownCell(content: string): string {
+  return content.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+}
+
+/**
  * Generate and print truth table for one or more boolean expressions side by side
  */
 function generateTruthTable(...expressions: string[]): void {
@@ -127,6 +141,89 @@ function generateTruthTable(...expressions: string[]): void {
   }
 
   console.log();
+}
+
+/**
+ * Generate a markdown + LaTeX truth table for one or more expressions
+ * Returns the table as a string.
+ */
+function generateTruthTableLatex(...expressions: string[]): string {
+  if (expressions.length === 0) {
+    const message = 'No expressions provided.';
+    console.log(message);
+    return message;
+  }
+
+  // Use original expressions for headers, and LaTeX-converted expressions for evaluation
+  const displayExpressions = expressions;
+  const evalExpressions = expressions.map(expr => fromLatex(expr));
+
+  // Extract all unique variables from all expressions
+  const allVariables = new Set<string>();
+  for (const expr of evalExpressions) {
+    for (const v of extractVariables(expr)) {
+      allVariables.add(v);
+    }
+  }
+  const orderedVariables: string[] = [];
+  const orderedSet = new Set<string>();
+  const singleVarExpressionIndexes = new Set<number>();
+
+  evalExpressions.forEach((expr, index) => {
+    const compact = expr.replace(/\s+/g, '');
+    if (/^[A-Z]$/.test(compact)) {
+      const variable = compact;
+      singleVarExpressionIndexes.add(index);
+      if (allVariables.has(variable) && !orderedSet.has(variable)) {
+        orderedSet.add(variable);
+        orderedVariables.push(variable);
+      }
+    }
+  });
+
+  const remainingVariables = [...allVariables].filter(v => !orderedSet.has(v)).sort();
+  const variables = [...orderedVariables, ...remainingVariables];
+
+  if (variables.length === 0) {
+    const message = 'No variables found in expressions.';
+    console.log(message);
+    return message;
+  }
+
+  const combinations = generateCombinations(variables);
+
+  const expressionHeaders = displayExpressions.filter((_, i) => !singleVarExpressionIndexes.has(i));
+  const expressionEval = evalExpressions.filter((_, i) => !singleVarExpressionIndexes.has(i));
+
+  const headerCells = [...variables, ...expressionHeaders]
+    .map(h => `$${escapeMarkdownCell(h)}$`);
+
+  const dataRows = combinations.map(values => {
+    const results = expressionEval.map(expr => formatBoolLatex(evaluateExpression(expr, values)));
+    return [
+      ...variables.map(v => formatBoolLatex(values[v]!)),
+      ...results,
+    ].map(val => `$${val}$`);
+  });
+
+  const colWidths = headerCells.map((cell, i) => {
+    const maxDataWidth = Math.max(...dataRows.map(row => row[i]!.length));
+    return Math.max(3, cell.length, maxDataWidth);
+  });
+
+  const formatRow = (cells: string[]) =>
+    `| ${cells.map((cell, i) => cell.padEnd(colWidths[i]!)).join(' | ')} |`;
+
+  const lines: string[] = [];
+  lines.push(formatRow(headerCells));
+  lines.push(`| ${colWidths.map(w => '-'.repeat(w)).join(' | ')} |`);
+  for (const row of dataRows) {
+    lines.push(formatRow(row));
+  }
+
+  const table = lines.join('\n');
+  console.log(table);
+  return table;
 }
 
 /**
@@ -399,6 +496,7 @@ export {
   generateCombinations, 
   evaluateExpression, 
   generateTruthTable, 
+  generateTruthTableLatex,
   getTruthTable, 
   fromLatex,
   cleanLatexEquation,

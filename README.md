@@ -81,6 +81,28 @@ F | T |  F |  T |  F
 F | F |  F |  F |  T
 ```
 
+### `generateTruthTableLatex(...expressions: string[])`
+
+Generate a markdown table where every header and cell is in LaTeX math mode.
+
+```typescript
+const table = generateTruthTableLatex(
+  String.raw`S \\leftrightarrow \\neg N`,
+  String.raw`S \\leftrightarrow N`,
+);
+console.log(table);
+```
+
+Output:
+```
+| $S$                 | $N$                 | $S \leftrightarrow \neg N$ | $S \leftrightarrow N$ |
+| ------------------- | ------------------- | -------------------------- | --------------------- |
+| $\color{green}\top$ | $\color{green}\top$ | $\color{red}\bot$          | $\color{green}\top$   |
+| $\color{green}\top$ | $\color{red}\bot$   | $\color{green}\top$        | $\color{red}\bot$     |
+| $\color{red}\bot$   | $\color{green}\top$ | $\color{green}\top$        | $\color{red}\bot$     |
+| $\color{red}\bot$   | $\color{red}\bot$   | $\color{red}\bot$          | $\color{green}\top$   |
+```
+
 ### `fromLatex(expr: string): string`
 
 Convert LaTeX boolean expression to JavaScript syntax.

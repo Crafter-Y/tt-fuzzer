@@ -4,6 +4,7 @@ import {
   generateCombinations,
   evaluateExpression,
   fromLatex,
+  generateTruthTableLatex,
   getTruthTable,
 } from "./tt";
 
@@ -298,6 +299,54 @@ describe("integration tests", () => {
     
     for (let i = 0; i < biconditional.rows.length; i++) {
       expect(biconditional.rows[i]?.result).toBe(implication.rows[i]?.result);
+    }
+  });
+});
+
+describe("generateTruthTableLatex", () => {
+  test("returns a markdown table with LaTeX cells", () => {
+    const table = generateTruthTableLatex(
+      "S",
+      "N",
+      String.raw`S \leftrightarrow \neg N`,
+      String.raw`S \leftrightarrow N`,
+    );
+
+    const lines = table.split("\n");
+    expect(lines).toHaveLength(6);
+
+    const parseRow = (line: string) =>
+      line.split("|").slice(1, -1).map(cell => cell);
+
+    const headerCells = parseRow(lines[0]!);
+    expect(headerCells.map(cell => cell.trim())).toEqual([
+      "$S$",
+      "$N$",
+      "$S \\leftrightarrow \\neg N$",
+      "$S \\leftrightarrow N$",
+    ]);
+
+    const separatorCells = parseRow(lines[1]!);
+    separatorCells.forEach(cell => {
+      expect(cell.trim().length).toBeGreaterThanOrEqual(3);
+      expect(/^-+$/.test(cell.trim())).toBe(true);
+    });
+
+    const dataRows = lines.slice(2).map(parseRow);
+    dataRows.forEach(row => {
+      row.forEach(cell => {
+        expect(/^\$\\color\{(green|red)\}\\(top|bot)\$$/.test(cell.trim())).toBe(true);
+      });
+    });
+
+    // Ensure column alignment: all rows have the same column widths
+    const columnCount = headerCells.length;
+    const widths = headerCells.map(cell => cell.length);
+    for (const row of [separatorCells, ...dataRows]) {
+      expect(row).toHaveLength(columnCount);
+      row.forEach((cell, i) => {
+        expect(cell.length).toBe(widths[i]!);
+      });
     }
   });
 });
