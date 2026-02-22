@@ -263,6 +263,15 @@ function getTruthTable(expression: string): {
 function fromLatex(expr: string): string {
   let result = expr;
 
+  // Handle \overline{...} - overline notation for complement (NOT)
+  // \overline{A} → !A, \overline{A \lor B} → !(A \lor B)
+  // Processed first so inner LaTeX operators are handled by subsequent steps
+  result = result.replace(/\\overline\{([^}]+)\}/g, (_, content) => {
+    const trimmed = content.trim();
+    if (/^[A-Z]$/.test(trimmed)) return `!${trimmed}`;
+    return `!(${trimmed})`;
+  });
+
   // Replace constants
   result = result.replace(/\\bot/g, '0');
   result = result.replace(/\\top/g, '1');

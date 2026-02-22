@@ -181,6 +181,32 @@ describe("fromLatex - implication", () => {
   });
 });
 
+describe("fromLatex - overline notation", () => {
+  test("converts \\overline{A} to !A", () => {
+    expect(fromLatex(String.raw`\overline{A}`)).toBe("!A");
+  });
+
+  test("converts \\overline in compound expression", () => {
+    expect(fromLatex(String.raw`\overline{A} \lor B`)).toBe("!A | B");
+  });
+
+  test("converts \\overline with compound content", () => {
+    expect(fromLatex(String.raw`\overline{A \lor B}`)).toBe("!(A | B)");
+  });
+
+  test("converts multiple overlines", () => {
+    expect(fromLatex(String.raw`\overline{A} \land \overline{B}`)).toBe("!A & !B");
+  });
+
+  test("converts overline in POS clause", () => {
+    expect(fromLatex(String.raw`(C \lor \overline{B} \lor \overline{A})`)).toBe("(C | !B | !A)");
+  });
+
+  test("overline with \\land inner expression", () => {
+    expect(fromLatex(String.raw`\overline{A \land B}`)).toBe("!(A & B)");
+  });
+});
+
 describe("fromLatex - complex expressions", () => {
   test("converts mixed operators", () => {
     const result = fromLatex("(A \\land B) \\lor (C \\land \\neg D)");
@@ -291,6 +317,26 @@ describe("integration tests", () => {
     for (let i = 0; i < table1.rows.length; i++) {
       expect(table1.rows[i]?.result).toBe(table2.rows[i]?.result);
     }
+  });
+
+  test("overline is equivalent to !", () => {
+    const table1 = getTruthTable(fromLatex(String.raw`\overline{A} \lor B`));
+    const table2 = getTruthTable("!A | B");
+    for (let i = 0; i < table1.rows.length; i++) {
+      expect(table1.rows[i]?.result).toBe(table2.rows[i]?.result);
+    }
+  });
+
+  test("POS expression with overline evaluates correctly", () => {
+    // (C ∨ ¬B ∨ ¬A) ∧ (C ∨ B ∨ C) ∧ (A ∨ ¬C ∨ ¬B) ∧ (A ∨ ¬B ∨ C) ∧ (¬A ∨ ¬C ∨ ¬A)
+    // Only true when A=F, B=F, C=T
+    const expr = fromLatex(
+      String.raw`(C \lor \overline{B} \lor \overline{A}) \land (C \lor B \lor C) \land (A \lor \overline{C} \lor \overline{B}) \land (A \lor \overline{B} \lor C) \land (\overline{A} \lor \overline{C} \lor \overline{A})`
+    );
+    const table = getTruthTable(expr);
+    // Combinations order: TTT, TTF, TFT, TFF, FTT, FTF, FFT, FFF
+    const results = table.rows.map(r => r.result);
+    expect(results).toEqual([false, false, false, false, false, false, true, false]);
   });
 
   test("Biconditional: A ↔ B = (A → B) & (B → A)", () => {

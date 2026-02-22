@@ -54,6 +54,7 @@ verifyEquality(equation);
 | `\leftrightarrow`, `\iff` | `===` | Biconditional (A ↔ B) |
 | `\bot` | `0` | False constant |
 | `\top` | `1` | True constant |
+| `\overline{X}` | `!X` | NOT (overline/complement) |
 
 ## API Reference
 
@@ -112,6 +113,8 @@ fromLatex("A \\lor B");              // "A | B"
 fromLatex("\\neg(A \\land B)");      // "!(A & B)"
 fromLatex("A \\rightarrow B");       // "!A | B"
 fromLatex("A \\leftrightarrow B");   // "A === B"
+fromLatex("\\overline{A}");          // "!A"
+fromLatex("\\overline{A \\lor B}");  // "!(A | B)"
 ```
 
 ### `verifyEquality(latexEquation: string)`
